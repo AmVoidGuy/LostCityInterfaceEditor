@@ -5,7 +5,9 @@ import org.lostcityinterfaceeditor.helpers.CustomSpriteHelper;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 public class SpriteManager {
@@ -29,5 +31,9 @@ public class SpriteManager {
 
     public WritableImage getSprite(String name, int index) {
         return getSprites(name).sprites.get(index);
+    }
+
+    public List<String> getAllSpriteNames() {
+        return new ArrayList<>(sprites.keySet());
     }
 }

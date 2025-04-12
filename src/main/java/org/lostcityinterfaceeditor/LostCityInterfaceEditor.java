@@ -1,6 +1,7 @@
 package org.lostcityinterfaceeditor;
 
 import javafx.application.Application;
+import javafx.collections.FXCollections;
 import javafx.event.EventHandler;
 import javafx.geometry.Insets;
 import javafx.geometry.Point2D;
@@ -184,19 +185,18 @@ public class LostCityInterfaceEditor extends Application {
         if ("text".equals(type)) {
             addSectionHeader(propertiesSidebarVBox, "Text Properties");
             addEditableProperty(propertiesSidebarVBox, "Text", component.getText(), value -> component.setText(value));
-            addEditableProperty(propertiesSidebarVBox, "Font", component.getFont(), value -> component.setFont(value));
+            addDropdownProperty(propertiesSidebarVBox, "Font", component.getFont(), List.of("p11", "p12", "b12", "q8"), component::setFont);
             addBooleanProperty(propertiesSidebarVBox, "Center", component.isCenter(), value -> component.setCenter(value));
             addBooleanProperty(propertiesSidebarVBox, "Shadowed", component.isShadowed(), value -> component.setShadowed(value));
-            addEditableProperty(propertiesSidebarVBox, "Colour", component.getColour(), value -> component.setColour(value));
-            addEditableProperty(propertiesSidebarVBox, "Over Colour", component.getOverColour(), value -> component.setOverColour(value));
-            addEditableProperty(propertiesSidebarVBox, "Active Colour", component.getActiveColour(), value -> component.setActiveColour(value));
+            addColorProperty(propertiesSidebarVBox, "Colour", component.getColour(), value -> component.setColour(value));
+            addColorProperty(propertiesSidebarVBox, "Over Colour", component.getOverColour(), value -> component.setOverColour(value));
+            addColorProperty(propertiesSidebarVBox, "Active Colour", component.getActiveColour(), value -> component.setActiveColour(value));
         } else if ("graphic".equals(type)) {
             addSectionHeader(propertiesSidebarVBox, "Graphic Properties");
-            addEditableProperty(propertiesSidebarVBox, "Graphic Name", component.getGraphicName(), value -> component.setGraphicName(value));
+            addDropdownProperty(propertiesSidebarVBox, "Graphic Name", component.getGraphicName(), assetLoader.getSpriteManager().getAllSpriteNames(), component::setGraphicName);
             addEditableProperty(propertiesSidebarVBox, "Graphic Index", String.valueOf(component.getGraphicIndex()),
                     value -> component.setGraphicIndex(Integer.parseInt(value)));
-            addEditableProperty(propertiesSidebarVBox, "Active Graphic Name", component.getActiveGraphicName(),
-                    value -> component.setActiveGraphicName(value));
+            addDropdownProperty(propertiesSidebarVBox, "Active Graphic Name", component.getActiveGraphicName(), assetLoader.getSpriteManager().getAllSpriteNames(), component::setActiveGraphicName);
             addEditableProperty(propertiesSidebarVBox, "Active Graphic Index", String.valueOf(component.getActiveGraphicIndex()),
                     value -> component.setActiveGraphicIndex(Integer.parseInt(value)));
         } else if ("layer".equals(type)) {
@@ -205,7 +205,7 @@ public class LostCityInterfaceEditor extends Application {
             addEditableProperty(propertiesSidebarVBox, "Scroll", String.valueOf(component.getScroll()), value -> component.setScroll(Integer.parseInt(value)));
         } else if ("rect".equals(type)) {
             addSectionHeader(propertiesSidebarVBox, "Rectangle Properties");
-            addEditableProperty(propertiesSidebarVBox, "Colour", component.getColour(), value -> component.setColour(value));
+            addColorProperty(propertiesSidebarVBox, "Colour", component.getColour(), value -> component.setColour(value));
             addBooleanProperty(propertiesSidebarVBox, "Fill", component.isFill(), value -> component.setFill(value));
         } else if ("model".equals(type)) {
             addSectionHeader(propertiesSidebarVBox, "Model Properties");
@@ -239,10 +239,10 @@ public class LostCityInterfaceEditor extends Application {
             }
         } else if ("invtext".equals(type)) {
             addSectionHeader(propertiesSidebarVBox, "Inventory Text Properties");
-            addEditableProperty(propertiesSidebarVBox, "Font", component.getFont(), value -> component.setFont(value));
+            addDropdownProperty(propertiesSidebarVBox, "Font", component.getFont(), List.of("p11", "p12", "b12", "q8"), component::setFont);
             addBooleanProperty(propertiesSidebarVBox, "Center", component.isCenter(), value -> component.setCenter(value));
             addBooleanProperty(propertiesSidebarVBox, "Shadowed", component.isShadowed(), value -> component.setShadowed(value));
-            addEditableProperty(propertiesSidebarVBox, "Colour", component.getColour(), value -> component.setColour(value));
+            addColorProperty(propertiesSidebarVBox, "Colour", component.getColour(), value -> component.setColour(value));
             addEditableProperty(propertiesSidebarVBox, "Margin", component.getMargin(), value -> component.setMargin(value));
             addBooleanProperty(propertiesSidebarVBox, "Interactable", component.isInteractable(), value -> component.setInteractable(value));
             List<String> invOptions = component.getInvOptions();
@@ -354,6 +354,34 @@ public class LostCityInterfaceEditor extends Application {
         container.getChildren().add(propertyRow);
     }
 
+    private void addDropdownProperty(VBox container, String name, String currentValue, List<String> options, Consumer<String> setter) {
+        HBox propertyRow = new HBox(5);
+        propertyRow.setPadding(new Insets(2, 0, 2, 5));
+
+        Label nameLabel = new Label(name + ":");
+        nameLabel.setMinWidth(120);
+        nameLabel.setMaxWidth(120);
+        nameLabel.setStyle("-fx-font-weight: bold;");
+
+        ComboBox<String> valueComboBox = new ComboBox<>(FXCollections.observableArrayList(options));
+        valueComboBox.setPrefWidth(150);
+
+        if (currentValue != null && options.contains(currentValue)) {
+            valueComboBox.setValue(currentValue);
+        } else if (!options.isEmpty()) {
+            valueComboBox.setPromptText("Select " + name);
+        }
+
+        valueComboBox.valueProperty().addListener((observable, oldValue, newValue) -> {
+            if (newValue != null) {
+                setter.accept(newValue);
+            }
+        });
+
+        propertyRow.getChildren().addAll(nameLabel, valueComboBox);
+        container.getChildren().add(propertyRow);
+    }
+
     private void showAlert(String title, String message) {
         Alert alert = new Alert(Alert.AlertType.ERROR);
         alert.setTitle(title);
@@ -379,6 +407,45 @@ public class LostCityInterfaceEditor extends Application {
         });
 
         propertyRow.getChildren().addAll(nameLabel, checkBox);
+        container.getChildren().add(propertyRow);
+    }
+
+    private void addColorProperty(VBox container, String name, String value, Consumer<String> setter) {
+        HBox propertyRow = new HBox(5);
+        propertyRow.setPadding(new Insets(2, 0, 2, 5));
+
+        Label nameLabel = new Label(name + ":");
+        nameLabel.setMinWidth(120);
+        nameLabel.setMaxWidth(120);
+        nameLabel.setStyle("-fx-font-weight: bold;");
+
+        ColorPicker colorPicker = new ColorPicker();
+
+        if (value != null && !value.isEmpty()) {
+            try {
+                String colorValue = value;
+                if (value.startsWith("0x")) {
+                    colorValue = "#" + value.substring(2);
+                } else if (value.matches("\\d+")) {
+                    int decimalColor = Integer.parseInt(value);
+                    colorValue = String.format("#%06X", decimalColor);
+                }
+                colorPicker.setValue(Color.web(colorValue));
+            } catch (Exception e) {
+                System.err.println("Could not parse color value: " + value);
+            }
+        }
+
+        colorPicker.setOnAction(event -> {
+            Color color = colorPicker.getValue();
+            String hexColor = String.format("0x%02X%02X%02X",
+                    (int) (color.getRed() * 255),
+                    (int) (color.getGreen() * 255),
+                    (int) (color.getBlue() * 255));
+            setter.accept(hexColor);
+        });
+
+        propertyRow.getChildren().addAll(nameLabel, colorPicker);
         container.getChildren().add(propertyRow);
     }
 
@@ -942,6 +1009,35 @@ public class LostCityInterfaceEditor extends Application {
                 }
             }
         }
+        for (Node node : areaViewport.getChildren()) {
+            if (node.getId() != null &&
+                    (node.getId().equals("layer_" + componentName) ||
+                            node.getId().equals("graphic_" + componentName) ||
+                            node.getId().equals("rect_" + componentName) ||
+                            node.getId().equals("model_" + componentName) ||
+                            node.getId().equals("inv_" + componentName) ||
+                            node.getId().equals("invtext_" + componentName) ||
+                            node.getId().equals("text_" + componentName))) {
+                return node;
+            }
+        }
+
+        for (Node node : areaViewport.getChildren()) {
+            if (node instanceof Pane && node.getId() != null && node.getId().startsWith("layer_")) {
+                Pane layerPane = (Pane) node;
+                for (Node childNode : layerPane.getChildren()) {
+                    if (childNode.getId() != null &&
+                            (childNode.getId().equals("graphic_" + componentName) ||
+                                    childNode.getId().equals("rect_" + componentName) ||
+                                    childNode.getId().equals("model_" + componentName) ||
+                                    node.getId().equals("inv_" + componentName) ||
+                                    node.getId().equals("invtext_" + componentName) ||
+                                    childNode.getId().equals("text_" + componentName))) {
+                        return childNode;
+                    }
+                }
+            }
+        }
 
         return null;
     }
@@ -980,11 +1076,19 @@ public class LostCityInterfaceEditor extends Application {
                 double deltaX = event.getSceneX() - dragStartX;
                 double deltaY = event.getSceneY() - dragStartY;
 
-                component.setX((int) (component.getX() + deltaX));
-                component.setY((int) (component.getY() + deltaY));
+                double newX = component.getX() + deltaX;
+                double newY = component.getY() + deltaY;
 
-                componentPane.setLayoutX(componentPane.getLayoutX() + deltaX);
-                componentPane.setLayoutY(componentPane.getLayoutY() + deltaY);
+                if (componentPane.getParent() == areaViewport) {
+                    newX = Math.max(0, Math.min(newX, areaViewport.getWidth() - component.getWidth()));
+                    newY = Math.max(0, Math.min(newY, areaViewport.getHeight() - component.getHeight()));
+                }
+
+                component.setX((int) newX);
+                component.setY((int) newY);
+
+                componentPane.setLayoutX(newX);
+                componentPane.setLayoutY(newY);
 
                 if (component == currentlyDraggableComponent) {
                     highlightSelectedComponent(component);
@@ -1008,6 +1112,26 @@ public class LostCityInterfaceEditor extends Application {
                 populatePropertiesSidebar(component);
             }
         });
+
+        if (parentPane != null) {
+            parentPane.setPickOnBounds(false);
+
+            parentPane.setOnMouseExited(event -> {
+                if (isDragging) {
+                    isDragging = false;
+                    event.consume();
+                }
+            });
+        }
+
+        else if (componentPane.getParent() == areaViewport) {
+            areaViewport.setOnMouseExited(event -> {
+                if (isDragging) {
+                    isDragging = false;
+                    event.consume();
+                }
+            });
+        }
     }
 
     private void updateChildrenPositions(String layerName) {
@@ -1071,11 +1195,36 @@ public class LostCityInterfaceEditor extends Application {
             }
         }
         root.getChildren().removeAll(nodesToRemove);
+        nodesToRemove.clear();
+
+        for (Node node : areaViewport.getChildren()) {
+            if (node != sidebarVBox &&
+                    node != propertiesSidebarVBox &&
+                    node != areaViewport &&
+                    node != areaSidebar &&
+                    node != tooltipPane &&
+                    node != backgroundCanvas) {
+
+                if (node instanceof Pane) {
+                    String id = node.getId();
+                    if (id != null && (
+                            id.startsWith("layer_") ||
+                                    id.startsWith("graphic_") ||
+                                    id.startsWith("rect_") ||
+                                    id.startsWith("model_") ||
+                                    id.startsWith("text_"))) {
+                        nodesToRemove.add(node);
+                    }
+                }
+            }
+        }
+        areaViewport.getChildren().removeAll(nodesToRemove);
 
         activeComponentName = null;
 
         originalClickHandlers.clear();
         originalViewOrderMap.clear();
+        textRenderInfoMap.clear();
     }
 
     private void renderInterfaceComponents() {
@@ -1132,9 +1281,6 @@ public class LostCityInterfaceEditor extends Application {
                             "' not found for component '" + component.getName() + "'");
                 }
             }
-
-            x += areaViewport.getLayoutX();
-            y += areaViewport.getLayoutY();
 
             Pane componentPane = null;
 
@@ -1711,11 +1857,11 @@ public class LostCityInterfaceEditor extends Application {
                         }
                         parentPane.getChildren().add(componentPane);
                     } else {
-                        root.getChildren().add(componentPane);
+                        areaViewport.getChildren().add(componentPane);
                         System.out.println("Warning: Parent layer pane not found for " + component.getName() + ", adding to root");
                     }
                 } else {
-                    root.getChildren().add(componentPane);
+                    areaViewport.getChildren().add(componentPane);
                 }
                 if (component.getLayer() != null && !component.getLayer().isEmpty()) {
                     boolean parentVisible = layerVisibilityMap.getOrDefault(component.getLayer(), true);
@@ -2070,11 +2216,11 @@ public class LostCityInterfaceEditor extends Application {
             areaMinimap.getChildren().add(minimapCircle);
 
             root.getChildren().addAll(
-                    areaChatback, areaCompass, areaMinimap, areaMapback,
+                    areaViewport, areaChatback, areaCompass, areaMinimap, areaMapback,
                     areaBackbase1,  areaBackbase2, areaBackhmid1,
                     areaBackleft1, areaBackleft2, areaBackright1, areaBackright2,
                     areaBacktop1, areaBacktop2, areaBackvmid1, areaBackvmid2, areaBackvmid3,
-                    areaBackhmid2, areaViewport, areaSidebar, areaInvback);
+                    areaBackhmid2, areaSidebar, areaInvback);
         } catch (Exception e) {
             e.printStackTrace();
         }
