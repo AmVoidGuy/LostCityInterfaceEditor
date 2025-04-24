@@ -1,6 +1,7 @@
 package org.lostcityinterfaceeditor.managers;
 
 import javafx.scene.image.WritableImage;
+import org.lostcityinterfaceeditor.LostCityInterfaceEditor;
 import org.lostcityinterfaceeditor.helpers.CustomSpriteHelper;
 
 import java.io.File;
@@ -35,5 +36,28 @@ public class SpriteManager {
 
     public List<String> getAllSpriteNames() {
         return new ArrayList<>(sprites.keySet());
+    }
+
+    public void saveSprite(String spriteName, int spriteIndex, WritableImage sprite) throws IOException {
+        CustomSpriteHelper spriteHelper = sprites.get(spriteName);
+        if (spriteHelper != null && spriteIndex >= 0 && spriteIndex < spriteHelper.sprites.size()) {
+            spriteHelper.sprites.set(spriteIndex, sprite);
+
+            String originalFilePath = findOriginalFilePath(spriteName);
+            if (originalFilePath != null) {
+                spriteHelper.saveToFile(originalFilePath);
+                return;
+            }
+        }
+        throw new IOException("Failed to save sprite: " + spriteName + " at index " + spriteIndex);
+    }
+
+    private String findOriginalFilePath(String spriteName) {
+        File baseDir = new File(LostCityInterfaceEditor.serverDirectoryPath, "sprites");
+        File spriteFile = new File(baseDir, spriteName + ".png");
+        if (spriteFile.exists()) {
+            return spriteFile.getAbsolutePath();
+        }
+        return null;
     }
 }

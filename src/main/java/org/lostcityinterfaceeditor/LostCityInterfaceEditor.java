@@ -502,8 +502,12 @@ public class LostCityInterfaceEditor extends Application {
         saveInterfaceButton.setMaxWidth(Double.MAX_VALUE);
         saveInterfaceButton.setOnAction(e -> saveInterfaceFile());
 
+        Button spriteEditorButton = new Button("Edit Sprite");
+        spriteEditorButton.setMaxWidth(Double.MAX_VALUE);
+        spriteEditorButton.setOnAction(event -> LostCitySpriteEditor.openSpriteEditor(assetLoader));
+
         VBox buttonBox = new VBox(5);
-        buttonBox.getChildren().addAll(addComponentButton, loadInterfaceButton, saveInterfaceButton);
+        buttonBox.getChildren().addAll(addComponentButton, loadInterfaceButton, saveInterfaceButton, spriteEditorButton);
         VBox.setMargin(buttonBox, new Insets(10, 0, 0, 0));
 
         sidebarVBox.getChildren().addAll(treeViewLabel, componentTreeView, selectionHintLabel, buttonBox);
