@@ -23,6 +23,7 @@ public class AssetLoader {
     private final FontManager fontManager;
     private final SpriteManager spriteManager;
     private final Map<String, Model> loadedModels;
+    private final String[] spriteDirectories = {"sprites", "title"};
 
     private boolean loaded = false;
 
@@ -133,30 +134,46 @@ public class AssetLoader {
 
     private void loadSprites() throws IOException {
         System.out.println("Loading sprites...");
-        Path spritesDirectoryPath = Paths.get(serverDirectoryPath, "sprites");
+        int totalLoadedCount = 0;
+        for (String directory : spriteDirectories) {
+            Path directoryPath = Paths.get(serverDirectoryPath, directory);
 
-        if (!Files.isDirectory(spritesDirectoryPath)) {
-            throw new IOException("Required 'sprites' directory not found at: " + spritesDirectoryPath);
-        }
-
-        File spritesDirectory = spritesDirectoryPath.toFile();
-        File[] spriteFiles = spritesDirectory.listFiles((dir, name) ->
-                name.toLowerCase().endsWith(".png") && new File(dir, name).isFile());
-
-        int loadedCount = 0;
-        if (spriteFiles != null) {
-            for (File spriteFile : spriteFiles) {
-                try {
-                    spriteManager.loadSprites(spriteFile.getAbsolutePath());
-                    loadedCount++;
-                } catch (Exception e) {
-                    System.err.println("Warning: Failed to load sprite sheet '" + spriteFile.getName() + "': " + e.getMessage());
+            if (!Files.exists(directoryPath)) {
+                if (directory.equals("sprites")) {
+                    throw new IOException("Required 'sprites' directory not found at: " + directoryPath);
+                } else {
+                    System.out.println("Optional '" + directory + "' directory not found, skipping...");
+                    continue;
                 }
             }
-            System.out.println("Finished loading sprites. Processed " + loadedCount + " sheets.");
-        } else {
-            throw new IOException("Could not list files in sprites directory: " + spritesDirectoryPath);
+
+            if (!Files.isDirectory(directoryPath)) {
+                System.err.println("Warning: '" + directory + "' exists but is not a directory at: " + directoryPath);
+                continue;
+            }
+
+            File spriteDirectory = directoryPath.toFile();
+            File[] spriteFiles = spriteDirectory.listFiles((dir, name) ->
+                    name.toLowerCase().endsWith(".png") && new File(dir, name).isFile());
+
+            int directoryLoadedCount = 0;
+            if (spriteFiles != null) {
+                for (File spriteFile : spriteFiles) {
+                    try {
+                        spriteManager.loadSprites(spriteFile.getAbsolutePath());
+                        directoryLoadedCount++;
+                    } catch (Exception e) {
+                        System.err.println("Warning: Failed to load sprite sheet '" + spriteFile.getName() +
+                                "' from '" + directory + "': " + e.getMessage());
+                    }
+                }
+                System.out.println("Loaded " + directoryLoadedCount + " sprite sheets from '" + directory + "' directory.");
+                totalLoadedCount += directoryLoadedCount;
+            } else {
+                System.err.println("Warning: Could not list files in '" + directory + "' directory: " + directoryPath);
+            }
         }
+        System.out.println("Finished loading sprites. Processed " + totalLoadedCount + " sheets total.");
     }
 
     private void loadFonts() throws IOException {

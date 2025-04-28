@@ -1,6 +1,5 @@
 package org.lostcityinterfaceeditor;
 
-import javafx.event.Event;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.Scene;
@@ -8,9 +7,7 @@ import javafx.scene.canvas.Canvas;
 import javafx.scene.canvas.GraphicsContext;
 import javafx.scene.control.*;
 import javafx.scene.image.WritableImage;
-import javafx.scene.layout.HBox;
-import javafx.scene.layout.Priority;
-import javafx.scene.layout.VBox;
+import javafx.scene.layout.*;
 import javafx.scene.paint.Color;
 import javafx.stage.Stage;
 import org.lostcityinterfaceeditor.helpers.CustomSpriteHelper;
@@ -27,9 +24,12 @@ public class LostCitySpriteEditor {
     private static AssetLoader assetLoader;
     private static final int MIN_ZOOM = 1;
     private static final int MAX_ZOOM = 32;
+    private static final int MIN_BRUSH_SIZE = 1;
+    private static final int MAX_BRUSH_SIZE = 10;
     private static boolean colorPickerMode = false;
     private static Map<String, Map<Integer, WritableImage>> originalSprites = new HashMap<>();
     private static boolean hasUnsavedChanges = false;
+    private static final Color PREVIEW_OUTLINE_COLOR = Color.YELLOW;
 
     static void openSpriteEditor(AssetLoader loader) {
         assetLoader = loader;
@@ -71,25 +71,85 @@ public class LostCitySpriteEditor {
     }
 
     private static void drawScaledSprite(GraphicsContext gc, WritableImage sprite, int maxWidth, int maxHeight, int zoom) {
-        gc.clearRect(0, 0, gc.getCanvas().getWidth(), gc.getCanvas().getHeight());
+        double canvasWidth = gc.getCanvas().getWidth();
+        double canvasHeight = gc.getCanvas().getHeight();
+        gc.clearRect(0, 0, canvasWidth, canvasHeight);
         gc.setStroke(Color.LIGHTGRAY);
+        gc.setLineWidth(1.0);
 
         for (int x = 0; x <= maxWidth; x++) {
-            gc.strokeLine(x * zoom, 0, x * zoom, maxHeight * zoom);
+            double xPos = x * zoom;
+            gc.strokeLine(xPos, 0, xPos, maxHeight * zoom);
         }
         for (int y = 0; y <= maxHeight; y++) {
-            gc.strokeLine(0, y * zoom, maxWidth * zoom, y * zoom);
+            double yPos = y * zoom;
+            gc.strokeLine(0, yPos, maxWidth * zoom, yPos);
         }
 
         if (sprite != null) {
             for (int x = 0; x < sprite.getWidth(); x++) {
                 for (int y = 0; y < sprite.getHeight(); y++) {
                     Color color = sprite.getPixelReader().getColor(x, y);
-                    gc.setFill(color);
-                    gc.fillRect(x * zoom, y * zoom, zoom, zoom);
+
+                    int pixelX = (int)(x * zoom);
+                    int pixelY = (int)(y * zoom);
+                    int pixelWidth = (int)Math.ceil(zoom);
+                    int pixelHeight = (int)Math.ceil(zoom);
+
+                    pixelWidth = Math.max(1, pixelWidth);
+                    pixelHeight = Math.max(1, pixelHeight);
+
+                    if (color.getOpacity() > 0) {
+                        gc.setFill(color);
+                        gc.fillRect(pixelX, pixelY, pixelWidth, pixelHeight);
+                    }
                 }
             }
         }
+    }
+
+    private static boolean applyBrushToPixel(GraphicsContext mainGc, WritableImage sprite,
+                                             int pixelX, int pixelY, Color newColor, int zoom) {
+        if (pixelX < 0 || pixelX >= sprite.getWidth() ||
+                pixelY < 0 || pixelY >= sprite.getHeight()) {
+            return false;
+        }
+
+        Color currentColor = sprite.getPixelReader().getColor(pixelX, pixelY);
+
+        if (!currentColor.equals(newColor)) {
+            boolean isFullyTransparent = newColor.getOpacity() == 0.0;
+
+            if (isFullyTransparent) {
+                sprite.getPixelWriter().setArgb(pixelX, pixelY, 0);
+            } else {
+                sprite.getPixelWriter().setColor(pixelX, pixelY, newColor);
+            }
+
+            int drawX = (int)(pixelX * zoom);
+            int drawY = (int)(pixelY * zoom);
+            int drawWidth = (int)Math.ceil(zoom);
+            int drawHeight = (int)Math.ceil(zoom);
+
+            drawWidth = Math.max(1, drawWidth);
+            drawHeight = Math.max(1, drawHeight);
+
+            if (isFullyTransparent) {
+                mainGc.clearRect(drawX, drawY, drawWidth, drawHeight);
+
+                mainGc.setStroke(Color.LIGHTGRAY);
+                mainGc.setLineWidth(1.0);
+                mainGc.strokeLine(drawX, drawY, drawX + drawWidth, drawY);
+                mainGc.strokeLine(drawX, drawY, drawX, drawY + drawHeight);
+            } else {
+                mainGc.setFill(newColor);
+                mainGc.fillRect(drawX, drawY, drawWidth, drawHeight);
+            }
+
+            return true;
+        }
+
+        return false;
     }
 
     private static void saveSprite(String spriteName, int spriteIndex, WritableImage sprite) {
@@ -148,8 +208,8 @@ public class LostCitySpriteEditor {
     }
 
     private static void storeOriginalSprite(String spriteName, int index, WritableImage sprite) {
-        originalSprites.computeIfAbsent(spriteName, k -> new HashMap<>());
-        originalSprites.get(spriteName).put(index, createBackupSprite(sprite));
+        originalSprites.computeIfAbsent(spriteName, k -> new HashMap<>())
+                .putIfAbsent(index, createBackupSprite(sprite));
     }
 
     private static void restoreOriginalSprite(String spriteName, int index, SpriteManager spriteManager) {
@@ -157,16 +217,22 @@ public class LostCitySpriteEditor {
             WritableImage original = originalSprites.get(spriteName).get(index);
             WritableImage current = spriteManager.getSprite(spriteName, index);
 
-            int width = (int) original.getWidth();
-            int height = (int) original.getHeight();
+            if (original != null && current != null &&
+                    original.getWidth() == current.getWidth() && original.getHeight() == current.getHeight())
+            {
+                int width = (int) original.getWidth();
+                int height = (int) original.getHeight();
 
-            for (int x = 0; x < width; x++) {
-                for (int y = 0; y < height; y++) {
-                    Color color = original.getPixelReader().getColor(x, y);
-                    current.getPixelWriter().setColor(x, y, color);
+                for (int x = 0; x < width; x++) {
+                    for (int y = 0; y < height; y++) {
+                        Color color = original.getPixelReader().getColor(x, y);
+                        current.getPixelWriter().setColor(x, y, color);
+                    }
                 }
+                hasUnsavedChanges = false;
+            } else {
+                System.err.println("Warning: Could not restore original sprite for " + spriteName + "[" + index + "] due to mismatch or null sprite.");
             }
-            hasUnsavedChanges = false;
         }
     }
 
@@ -200,9 +266,17 @@ public class LostCitySpriteEditor {
         int maxWidth = 0;
         int maxHeight = 0;
         for (WritableImage img : spriteHelper.sprites) {
-            maxWidth = Math.max(maxWidth, (int)img.getWidth());
-            maxHeight = Math.max(maxHeight, (int)img.getHeight());
+            if (img != null) {
+                maxWidth = Math.max(maxWidth, (int)img.getWidth());
+                maxHeight = Math.max(maxHeight, (int)img.getHeight());
+            }
         }
+        if (maxWidth == 0 || maxHeight == 0) {
+            showAlert(Alert.AlertType.ERROR, "Error",
+                    "Invalid Sprite Dimensions", "Could not determine sprite dimensions.");
+            return;
+        }
+
 
         originalSprites.remove(spriteName);
         hasUnsavedChanges = false;
@@ -213,15 +287,24 @@ public class LostCitySpriteEditor {
         final int[] requestedSpriteIndex = {0};
 
         WritableImage initialSprite = spriteManager.getSprite(spriteName, currentSpriteIndex[0]);
+        if (initialSprite == null) {
+            showAlert(Alert.AlertType.ERROR, "Error",
+                    "Sprite Not Loaded", "Could not load initial sprite at index 0.");
+            return;
+        }
         storeOriginalSprite(spriteName, currentSpriteIndex[0], initialSprite);
 
-        VBox canvasContainer = new VBox();
-        canvasContainer.setAlignment(Pos.CENTER);
+        StackPane canvasPane = new StackPane();
+        canvasPane.setAlignment(Pos.TOP_LEFT);
 
-        Canvas canvas = createCanvas(maxWidth, maxHeight, currentZoom[0]);
-        canvasContainer.getChildren().add(canvas);
+        Canvas mainCanvas = createCanvas(maxWidth, maxHeight, currentZoom[0]);
+        GraphicsContext mainGc = mainCanvas.getGraphicsContext2D();
 
-        GraphicsContext gc = canvas.getGraphicsContext2D();
+        Canvas previewCanvas = createCanvas(maxWidth, maxHeight, currentZoom[0]);
+        GraphicsContext previewGc = previewCanvas.getGraphicsContext2D();
+
+        canvasPane.getChildren().addAll(mainCanvas, previewCanvas);
+
         final ColorPicker colorPicker = new ColorPicker(Color.BLACK);
 
         Label indexValueLabel = new Label("0 / " + (totalSprites - 1));
@@ -243,10 +326,33 @@ public class LostCitySpriteEditor {
         int finalMaxWidth = maxWidth;
         int finalMaxHeight = maxHeight;
 
+        Label brushSizeLabel = new Label("Brush Size:");
+        Slider brushSizeSlider = new Slider(MIN_BRUSH_SIZE, MAX_BRUSH_SIZE, 1);
+        brushSizeSlider.setShowTickMarks(true);
+        brushSizeSlider.setShowTickLabels(true);
+        brushSizeSlider.setMajorTickUnit(1);
+        brushSizeSlider.setMinorTickCount(0);
+        brushSizeSlider.setBlockIncrement(1);
+        brushSizeSlider.setSnapToTicks(true);
+
+        Label brushValueLabel = new Label(String.valueOf((int)brushSizeSlider.getValue()));
+        brushSizeSlider.valueProperty().addListener((obs, ov, nv) -> {
+            brushValueLabel.setText(String.valueOf(nv.intValue()));
+        });
+
+
+        HBox brushSizeControls = new HBox(5, brushSizeLabel, brushSizeSlider, brushValueLabel);
+        brushSizeControls.setAlignment(Pos.CENTER_LEFT);
+
         Runnable updateCanvas = () -> {
             int index = currentSpriteIndex[0];
             int zoom = currentZoom[0];
             WritableImage sprite = spriteManager.getSprite(spriteName, index);
+
+            if (sprite == null) {
+                System.err.println("Error: Sprite is null for index " + index + " in updateCanvas");
+                return;
+            }
 
             if (!originalSprites.containsKey(spriteName) || !originalSprites.get(spriteName).containsKey(index)) {
                 storeOriginalSprite(spriteName, index, sprite);
@@ -254,15 +360,19 @@ public class LostCitySpriteEditor {
 
             indexValueLabel.setText(currentSpriteIndex[0] + " / " + (totalSprites - 1));
 
-            Canvas newCanvas = createCanvas(finalMaxWidth, finalMaxHeight, zoom);
-            GraphicsContext newGc = newCanvas.getGraphicsContext2D();
+            double canvasWidth = finalMaxWidth * zoom;
+            double canvasHeight = finalMaxHeight * zoom;
 
-            setupCanvasEventHandlers(newCanvas, newGc, spriteName, spriteManager, colorPicker, currentSpriteIndex, currentZoom);
+            mainCanvas.setWidth(canvasWidth);
+            mainCanvas.setHeight(canvasHeight);
+            previewCanvas.setWidth(canvasWidth);
+            previewCanvas.setHeight(canvasHeight);
 
-            canvasContainer.getChildren().clear();
-            canvasContainer.getChildren().add(newCanvas);
+            previewGc.clearRect(0, 0, canvasWidth, canvasHeight);
+            drawScaledSprite(mainGc, sprite, finalMaxWidth, finalMaxHeight, zoom);
 
-            drawScaledSprite(newGc, sprite, finalMaxWidth, finalMaxHeight, zoom);
+            setupCanvasEventHandlers(mainCanvas, mainGc, previewCanvas, previewGc, spriteName, spriteManager,
+                    colorPicker, currentSpriteIndex, currentZoom, brushSizeSlider);
 
             String title = "Sprite Editor - " + spriteName + " [" + index + "] - Zoom: " + zoom + "x";
             if (hasUnsavedChanges) {
@@ -297,8 +407,13 @@ public class LostCitySpriteEditor {
                     nextButton.setDisable(oldIndex == totalSprites - 1);
                     return;
                 } else if (result.getText().equals("Save")) {
-                    WritableImage sprite = spriteManager.getSprite(spriteName, oldIndex);
-                    saveSprite(spriteName, oldIndex, sprite);
+                    WritableImage spriteToSave = spriteManager.getSprite(spriteName, oldIndex);
+                    if (spriteToSave != null) {
+                        saveSprite(spriteName, oldIndex, spriteToSave);
+                    } else {
+                        System.err.println("Error: Cannot save null sprite at index " + oldIndex);
+                        restoreOriginalSprite(spriteName, oldIndex, spriteManager);
+                    }
                 } else {
                     restoreOriginalSprite(spriteName, oldIndex, spriteManager);
                 }
@@ -324,20 +439,25 @@ public class LostCitySpriteEditor {
         });
 
         zoomSlider.valueProperty().addListener((obs, oldVal, newVal) -> {
-            currentZoom[0] = newVal.intValue();
-            updateCanvas.run();
+            if (newVal.intValue() != oldVal.intValue()) {
+                currentZoom[0] = newVal.intValue();
+                updateCanvas.run();
+            }
         });
 
         colorPickerTool.selectedProperty().addListener((obs, oldVal, newVal) -> {
             colorPickerMode = newVal;
+            previewGc.clearRect(0, 0, previewCanvas.getWidth(), previewCanvas.getHeight());
         });
 
         Button saveButton = new Button("Save Changes");
         saveButton.setOnAction(e -> {
             int index = currentSpriteIndex[0];
             WritableImage sprite = spriteManager.getSprite(spriteName, index);
-            saveSprite(spriteName, index, sprite);
-            updateCanvas.run();
+            if (sprite != null) {
+                saveSprite(spriteName, index, sprite);
+                updateCanvas.run();
+            }
         });
 
         Button revertButton = new Button("Revert Changes");
@@ -354,11 +474,12 @@ public class LostCitySpriteEditor {
         navigationControls.setAlignment(Pos.CENTER);
 
         HBox spriteControls = new HBox(10, navigationControls, saveButton, revertButton);
-        spriteControls.setAlignment(Pos.CENTER);
+        spriteControls.setAlignment(Pos.CENTER_LEFT);
 
-        HBox controls = new HBox(20, spriteControls, zoomControls);
-        controls.setPadding(new Insets(10));
-        controls.setAlignment(Pos.CENTER);
+        HBox bottomControls = new HBox(20, spriteControls, zoomControls);
+        bottomControls.setPadding(new Insets(10));
+        bottomControls.setAlignment(Pos.CENTER_LEFT);
+        HBox.setHgrow(zoomControls, Priority.ALWAYS);
 
         VBox toolPanel = new VBox(10);
         toolPanel.setPadding(new Insets(10));
@@ -366,50 +487,65 @@ public class LostCitySpriteEditor {
                 new Label("Color:"),
                 colorPicker,
                 new Separator(),
-                colorPickerTool
+                colorPickerTool,
+                new Separator(),
+                brushSizeControls
         );
-        ScrollPane scrollPane = new ScrollPane(canvasContainer);
+
+        ScrollPane scrollPane = new ScrollPane(canvasPane);
         scrollPane.setPannable(true);
         scrollPane.setFitToWidth(false);
         scrollPane.setFitToHeight(false);
 
         toolPanel.setPrefWidth(200);
         toolPanel.setMinWidth(200);
+
         HBox contentLayout = new HBox(scrollPane, toolPanel);
         HBox.setHgrow(scrollPane, Priority.ALWAYS);
         HBox.setHgrow(toolPanel, Priority.NEVER);
 
-        VBox root = new VBox(contentLayout, controls);
+        VBox root = new VBox(contentLayout, bottomControls);
         VBox.setVgrow(contentLayout, Priority.ALWAYS);
 
-        setupCanvasEventHandlers(canvas, gc, spriteName, spriteManager, colorPicker, currentSpriteIndex, currentZoom);
+        setupCanvasEventHandlers(mainCanvas, mainGc, previewCanvas, previewGc, spriteName, spriteManager,
+                colorPicker, currentSpriteIndex, currentZoom, brushSizeSlider);
 
-        Scene scene = new Scene(root, 800, 600);
+        Scene scene = new Scene(root, 950, 700);
         editorStage.setScene(scene);
 
         editorStage.setOnCloseRequest(e -> {
             if (hasUnsavedChanges) {
                 Alert alert = new Alert(Alert.AlertType.CONFIRMATION);
                 alert.setTitle("Unsaved Changes");
-                alert.setHeaderText("You have unsaved changes");
-                alert.setContentText("Would you like to save your changes before closing?");
+                alert.setHeaderText("You may have unsaved changes.");
+                alert.setContentText("Closing the editor might discard changes.\nWould you like to save the currently visible sprite (" + currentSpriteIndex[0] + ") before closing, or discard all changes?");
 
-                ButtonType saveButton2 = new ButtonType("Save");
-                ButtonType dontSaveButton = new ButtonType("Don't Save");
+                ButtonType saveCurrentButton = new ButtonType("Save Current");
+                ButtonType discardAllButton = new ButtonType("Discard All Changes");
                 ButtonType cancelButton = new ButtonType("Cancel", ButtonBar.ButtonData.CANCEL_CLOSE);
 
-                alert.getButtonTypes().setAll(saveButton2, dontSaveButton, cancelButton);
+                alert.getButtonTypes().setAll(saveCurrentButton, discardAllButton, cancelButton);
 
                 ButtonType result = alert.showAndWait().orElse(cancelButton);
 
-                if (result == saveButton2) {
+                if (result == saveCurrentButton) {
                     int index = currentSpriteIndex[0];
                     WritableImage sprite = spriteManager.getSprite(spriteName, index);
-                    saveSprite(spriteName, index, sprite);
-                } else if (result == dontSaveButton) {
-                    int index = currentSpriteIndex[0];
-                    restoreOriginalSprite(spriteName, index, spriteManager);
-                } else if (result == cancelButton) {
+                    if (sprite != null) {
+                        saveSprite(spriteName, index, sprite);
+                    }
+                } else if (result == discardAllButton) {
+                    if (originalSprites.containsKey(spriteName)) {
+                        originalSprites.get(spriteName).forEach((idx, originalImg) -> {
+                            WritableImage current = spriteManager.getSprite(spriteName, idx);
+                            if (current != null && originalImg != null && !areImagesEqual(current, originalImg)) {
+                                System.out.println("Discarding changes for index: " + idx);
+                                restoreOriginalSprite(spriteName, idx, spriteManager);
+                            }
+                        });
+                    }
+                    hasUnsavedChanges = false;
+                } else {
                     e.consume();
                 }
             }
@@ -418,75 +554,173 @@ public class LostCitySpriteEditor {
         editorStage.show();
     }
 
-    private static Canvas createCanvas(int width, int height, int zoom) {
-        return new Canvas(width * zoom, height * zoom);
+    private static boolean areImagesEqual(WritableImage img1, WritableImage img2) {
+        if (img1.getWidth() != img2.getWidth() || img1.getHeight() != img2.getHeight()) {
+            return false;
+        }
+        for (int y = 0; y < img1.getHeight(); y++) {
+            for (int x = 0; x < img1.getWidth(); x++) {
+                if (!img1.getPixelReader().getColor(x, y).equals(img2.getPixelReader().getColor(x, y))) {
+                    return false;
+                }
+            }
+        }
+        return true;
     }
 
-    private static void setupCanvasEventHandlers(Canvas canvas, GraphicsContext gc,
+
+    private static Canvas createCanvas(int width, int height, int zoom) {
+        double canvasWidth = Math.max(1.0, (double)width * zoom);
+        double canvasHeight = Math.max(1.0, (double)height * zoom);
+        return new Canvas(canvasWidth, canvasHeight);
+    }
+    private static void drawBrushPreview(GraphicsContext previewGc, WritableImage sprite, int zoom, int brushSize, int centerX, int centerY) {
+        if (colorPickerMode || sprite == null || previewGc == null) {
+            previewGc.clearRect(0, 0, previewGc.getCanvas().getWidth(), previewGc.getCanvas().getHeight());
+            return;
+        }
+
+        previewGc.clearRect(0, 0, previewGc.getCanvas().getWidth(), previewGc.getCanvas().getHeight());
+
+        int startX = centerX - (brushSize - 1) / 2;
+        int startY = centerY - (brushSize - 1) / 2;
+
+        previewGc.setStroke(PREVIEW_OUTLINE_COLOR);
+        previewGc.setLineWidth(zoom > 4 ? 2.0 : 1.0);
+
+        for (int x = 0; x < brushSize; x++) {
+            for (int y = 0; y < brushSize; y++) {
+                int pixelX = startX + x;
+                int pixelY = startY + y;
+                if (pixelX >= 0 && pixelX < sprite.getWidth() &&
+                        pixelY >= 0 && pixelY < sprite.getHeight()) {
+                    double drawX = pixelX * zoom + (previewGc.getLineWidth() / 2.0);
+                    double drawY = pixelY * zoom + (previewGc.getLineWidth() / 2.0);
+                    double drawW = zoom - previewGc.getLineWidth();
+                    double drawH = zoom - previewGc.getLineWidth();
+
+                    if (drawW > 0 && drawH > 0) {
+                        previewGc.strokeRect(drawX, drawY, drawW, drawH);
+                    } else {
+                        previewGc.strokeLine(drawX, drawY, drawX, drawY);
+                    }
+                }
+            }
+        }
+    }
+
+    private static void setupCanvasEventHandlers(Canvas mainCanvas, GraphicsContext mainGc,
+                                                 Canvas previewCanvas, GraphicsContext previewGc,
                                                  String spriteName, SpriteManager spriteManager,
-                                                 ColorPicker colorPicker, int[] currentSpriteIndex, int[] currentZoom) {
-        canvas.setOnMouseDragged(e -> {
+                                                 ColorPicker colorPicker, int[] currentSpriteIndex,
+                                                 int[] currentZoom, Slider brushSizeSlider) {
+        previewCanvas.setOnMouseMoved(e -> {
             int zoom = currentZoom[0];
-            int x = (int) (e.getX() / zoom);
-            int y = (int) (e.getY() / zoom);
+            int brushSize = (int) brushSizeSlider.getValue();
+            int centerX = (int) (e.getX() / zoom);
+            int centerY = (int) (e.getY() / zoom);
+            int index = currentSpriteIndex[0];
+            WritableImage sprite = spriteManager.getSprite(spriteName, index);
+            drawBrushPreview(previewGc, sprite, zoom, brushSize, centerX, centerY);
+
+            e.consume();
+        });
+
+        previewCanvas.setOnMouseExited(e -> {
+            previewGc.clearRect(0, 0, previewCanvas.getWidth(), previewCanvas.getHeight());
+            e.consume();
+        });
+
+        previewCanvas.setOnMouseDragged(e -> {
+            int zoom = currentZoom[0];
+            int brushSize = (int) brushSizeSlider.getValue();
+            int centerX = (int) (e.getX() / zoom);
+            int centerY = (int) (e.getY() / zoom);
             int index = currentSpriteIndex[0];
             WritableImage sprite = spriteManager.getSprite(spriteName, index);
 
-            if (x >= 0 && x < sprite.getWidth() && y >= 0 && y < sprite.getHeight()) {
-                if (colorPickerMode) {
-                    Color pickedColor = sprite.getPixelReader().getColor(x, y);
+            if (sprite == null) return;
+
+            drawBrushPreview(previewGc, sprite, zoom, brushSize, centerX, centerY);
+
+            if (colorPickerMode) {
+                if (centerX >= 0 && centerX < sprite.getWidth() && centerY >= 0 && centerY < sprite.getHeight()) {
+                    Color pickedColor = sprite.getPixelReader().getColor(centerX, centerY);
                     colorPicker.setValue(pickedColor);
-                } else {
-                    Color currentColor = sprite.getPixelReader().getColor(x, y);
-                    Color newColor = colorPicker.getValue();
+                }
+            } else {
+                Color newColor = colorPicker.getValue();
+                boolean madeChanges = false;
 
-                    if (!currentColor.equals(newColor)) {
-                        sprite.getPixelWriter().setColor(x, y, newColor);
-                        gc.setFill(newColor);
-                        gc.fillRect(x * zoom, y * zoom, zoom, zoom);
-                        hasUnsavedChanges = true;
+                int startX = centerX - (brushSize - 1) / 2;
+                int startY = centerY - (brushSize - 1) / 2;
 
-                        Stage stage = (Stage) canvas.getScene().getWindow();
-                        if (!stage.getTitle().endsWith(" *")) {
-                            stage.setTitle(stage.getTitle() + " *");
+                for (int x = 0; x < brushSize; x++) {
+                    for (int y = 0; y < brushSize; y++) {
+                        int pixelX = startX + x;
+                        int pixelY = startY + y;
+
+                        if (applyBrushToPixel(mainGc, sprite, pixelX, pixelY, newColor, zoom)) {
+                            madeChanges = true;
                         }
+                    }
+                }
+
+                if (madeChanges && !hasUnsavedChanges) {
+                    hasUnsavedChanges = true;
+                    Stage stage = (Stage) previewCanvas.getScene().getWindow();
+                    if (stage != null && !stage.getTitle().endsWith(" *")) {
+                        stage.setTitle(stage.getTitle() + " *");
                     }
                 }
             }
             e.consume();
         });
 
-        canvas.setOnMouseClicked(e -> {
+        previewCanvas.setOnMouseClicked(e -> {
             int zoom = currentZoom[0];
-            int x = (int) (e.getX() / zoom);
-            int y = (int) (e.getY() / zoom);
+            int brushSize = (int) brushSizeSlider.getValue();
+            int centerX = (int) (e.getX() / zoom);
+            int centerY = (int) (e.getY() / zoom);
             int index = currentSpriteIndex[0];
             WritableImage sprite = spriteManager.getSprite(spriteName, index);
 
-            if (x >= 0 && x < sprite.getWidth() && y >= 0 && y < sprite.getHeight()) {
-                if (colorPickerMode) {
-                    Color pickedColor = sprite.getPixelReader().getColor(x, y);
+            if (sprite == null) return;
+
+            drawBrushPreview(previewGc, sprite, zoom, brushSize, centerX, centerY);
+
+            if (colorPickerMode) {
+                if (centerX >= 0 && centerX < sprite.getWidth() && centerY >= 0 && centerY < sprite.getHeight()) {
+                    Color pickedColor = sprite.getPixelReader().getColor(centerX, centerY);
                     colorPicker.setValue(pickedColor);
-                } else {
-                    Color currentColor = sprite.getPixelReader().getColor(x, y);
-                    Color newColor = colorPicker.getValue();
+                }
+            } else {
+                Color newColor = colorPicker.getValue();
+                boolean madeChanges = false;
 
-                    if (!currentColor.equals(newColor)) {
-                        sprite.getPixelWriter().setColor(x, y, newColor);
-                        gc.setFill(newColor);
-                        gc.fillRect(x * zoom, y * zoom, zoom, zoom);
-                        hasUnsavedChanges = true;
+                int startX = centerX - (brushSize - 1) / 2;
+                int startY = centerY - (brushSize - 1) / 2;
 
-                        Stage stage = (Stage) canvas.getScene().getWindow();
-                        if (!stage.getTitle().endsWith(" *")) {
-                            stage.setTitle(stage.getTitle() + " *");
+                for (int x = 0; x < brushSize; x++) {
+                    for (int y = 0; y < brushSize; y++) {
+                        int pixelX = startX + x;
+                        int pixelY = startY + y;
+
+                        if (applyBrushToPixel(mainGc, sprite, pixelX, pixelY, newColor, zoom)) {
+                            madeChanges = true;
                         }
+                    }
+                }
+
+                if (madeChanges && !hasUnsavedChanges) {
+                    hasUnsavedChanges = true;
+                    Stage stage = (Stage) previewCanvas.getScene().getWindow();
+                    if (stage != null && !stage.getTitle().endsWith(" *")) {
+                        stage.setTitle(stage.getTitle() + " *");
                     }
                 }
             }
             e.consume();
         });
-
-        canvas.setOnMousePressed(Event::consume);
     }
 }

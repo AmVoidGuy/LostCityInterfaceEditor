@@ -18,9 +18,24 @@ import java.util.Set;
 
 public class CustomSpriteHelper {
     public ArrayList<WritableImage> sprites = new ArrayList<>();
+    private boolean shouldCreatePalette = true;
 
     public CustomSpriteHelper(String imagePngFile) throws IOException {
+        File spriteFile = new File(imagePngFile);
+        String baseDir = spriteFile.getParent();
+        File metaDir = new File(baseDir, "meta");
+        String spriteName = spriteFile.getName();
+        int dotIndex = spriteName.lastIndexOf('.');
+        if (dotIndex > 0) {
+            spriteName = spriteName.substring(0, dotIndex);
+        }
+        File paletteFile = new File(metaDir, spriteName + ".pal.png");
+        this.shouldCreatePalette = paletteFile.exists();
         loadImageData(imagePngFile);
+    }
+
+    public void setShouldCreatePalette(boolean shouldCreatePalette) {
+        this.shouldCreatePalette = shouldCreatePalette;
     }
 
     private void loadImageData(String imagePngFile) throws IOException {
@@ -218,7 +233,9 @@ public class CustomSpriteHelper {
 
         try {
             ImageIO.write(bufferedImage, "png", originalFile);
-            updatePaletteFile(outputPath);
+            if (shouldCreatePalette) {
+                updatePaletteFile(outputPath);
+            }
         } catch (IOException e) {
             throw new IOException("Failed to save image to " + outputPath, e);
         }

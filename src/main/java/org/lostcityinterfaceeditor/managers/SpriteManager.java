@@ -1,7 +1,6 @@
 package org.lostcityinterfaceeditor.managers;
 
 import javafx.scene.image.WritableImage;
-import org.lostcityinterfaceeditor.LostCityInterfaceEditor;
 import org.lostcityinterfaceeditor.helpers.CustomSpriteHelper;
 
 import java.io.File;
@@ -13,6 +12,13 @@ import java.util.Map;
 
 public class SpriteManager {
     private final Map<String, CustomSpriteHelper> sprites = new HashMap<>();
+    private final Map<String, String> spriteSourcePaths = new HashMap<>();
+    private final List<String> spriteDirectories = new ArrayList<>();
+
+    public SpriteManager() {
+        spriteDirectories.add("sprites");
+        spriteDirectories.add("title");
+    }
 
     public void loadSprites(String spriteImageFile) throws IOException {
         File spriteFile = new File(spriteImageFile);
@@ -24,6 +30,7 @@ public class SpriteManager {
         }
         CustomSpriteHelper customSpriteHelper = new CustomSpriteHelper(spriteImageFile);
         sprites.put(spriteName, customSpriteHelper);
+        spriteSourcePaths.put(spriteName, spriteFile.getAbsolutePath());
     }
 
     public CustomSpriteHelper getSprites(String spriteName) {
@@ -31,7 +38,11 @@ public class SpriteManager {
     }
 
     public WritableImage getSprite(String name, int index) {
-        return getSprites(name).sprites.get(index);
+        CustomSpriteHelper helper = getSprites(name);
+        if (helper != null && index >= 0 && index < helper.sprites.size()) {
+            return helper.sprites.get(index);
+        }
+        return null;
     }
 
     public List<String> getAllSpriteNames() {
@@ -43,21 +54,18 @@ public class SpriteManager {
         if (spriteHelper != null && spriteIndex >= 0 && spriteIndex < spriteHelper.sprites.size()) {
             spriteHelper.sprites.set(spriteIndex, sprite);
 
-            String originalFilePath = findOriginalFilePath(spriteName);
+            String originalFilePath = spriteSourcePaths.get(spriteName);
             if (originalFilePath != null) {
+                File originalFile = new File(originalFilePath);
+                String baseDir = originalFile.getParent();
+                File metaDir = new File(baseDir, "meta");
+                File paletteFile = new File(metaDir, spriteName + ".pal.png");
+                boolean shouldCreatePalette = paletteFile.exists();
+                spriteHelper.setShouldCreatePalette(shouldCreatePalette);
                 spriteHelper.saveToFile(originalFilePath);
                 return;
             }
         }
         throw new IOException("Failed to save sprite: " + spriteName + " at index " + spriteIndex);
-    }
-
-    private String findOriginalFilePath(String spriteName) {
-        File baseDir = new File(LostCityInterfaceEditor.serverDirectoryPath, "sprites");
-        File spriteFile = new File(baseDir, spriteName + ".png");
-        if (spriteFile.exists()) {
-            return spriteFile.getAbsolutePath();
-        }
-        return null;
     }
 }
