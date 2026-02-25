@@ -2038,124 +2038,124 @@ public class LostCityInterfaceEditor extends Application {
 
             areaMapback = new Pane();
             areaMapback.setPrefSize(168, 160);
-            areaMapback.setLayoutX(561);
-            areaMapback.setLayoutY(5);
+            areaMapback.setLayoutX(550);
+            areaMapback.setLayoutY(4);
             mapbackImageView = new ImageView(assetLoader.getSpriteManager().getSprite("mapback", 0));
             areaMapback.getChildren().add(mapbackImageView);
 
             areaChatback = new Pane();
             areaChatback.setPrefSize(479, 96);
-            areaChatback.setLayoutX(22);
-            areaChatback.setLayoutY(375);
+            areaChatback.setLayoutX(17);
+            areaChatback.setLayoutY(357);
             chatbackImageView = new ImageView(assetLoader.getSpriteManager().getSprite("chatback", 0));
             areaChatback.getChildren().add(chatbackImageView);
 
             areaViewport = new Pane();
             areaViewport.setPrefSize(512, 334);
-            areaViewport.setLayoutX(8);
-            areaViewport.setLayoutY(11);
+            areaViewport.setLayoutX(4);
+            areaViewport.setLayoutY(4);
 
             areaSidebar = new Pane();
             areaSidebar.setPrefSize(190, 261);
-            areaSidebar.setLayoutX(562);
-            areaSidebar.setLayoutY(231);
+            areaSidebar.setLayoutX(553);
+            areaSidebar.setLayoutY(205);
 
             areaBackbase1 = new Pane();
             areaBackbase1.setPrefSize(501, 61);
             areaBackbase1.setLayoutX(0);
-            areaBackbase1.setLayoutY(471);
+            areaBackbase1.setLayoutY(453);
             backbase1ImageView = new ImageView(assetLoader.getSpriteManager().getSprite("backbase1", 0));
             areaBackbase1.getChildren().add(backbase1ImageView);
 
             areaBackbase2 = new Pane();
             areaBackbase2.setPrefSize(288, 40);
-            areaBackbase2.setLayoutX(501);
-            areaBackbase2.setLayoutY(492);
+            areaBackbase2.setLayoutX(496);
+            areaBackbase2.setLayoutY(466);
             backbase2ImageView = new ImageView(assetLoader.getSpriteManager().getSprite("backbase2", 0));
             ImageView imageSideiconView7 = new ImageView(assetLoader.getSpriteManager().getSprite("sideicons", 7));
-            imageSideiconView7.setLayoutX(80);
-            imageSideiconView7.setLayoutY(2);
+            imageSideiconView7.setLayoutX(74);
+            imageSideiconView7.setLayoutY(0);
 
             ImageView imageSideiconView8 = new ImageView(assetLoader.getSpriteManager().getSprite("sideicons", 8));
-            imageSideiconView8.setLayoutX(107);
-            imageSideiconView8.setLayoutY(3);
+            imageSideiconView8.setLayoutX(102);
+            imageSideiconView8.setLayoutY(0);
 
             ImageView imageSideiconView9 = new ImageView(assetLoader.getSpriteManager().getSprite("sideicons", 9));
-            imageSideiconView9.setLayoutX(142);
-            imageSideiconView9.setLayoutY(4);
+            imageSideiconView9.setLayoutX(135);
+            imageSideiconView9.setLayoutY(1);
 
             ImageView imageSideiconView10 = new ImageView(assetLoader.getSpriteManager().getSprite("sideicons", 10));
-            imageSideiconView10.setLayoutX(179);
-            imageSideiconView10.setLayoutY(2);
+            imageSideiconView10.setLayoutX(173);
+            imageSideiconView10.setLayoutY(0);
 
             ImageView imageSideiconView11 = new ImageView(assetLoader.getSpriteManager().getSprite("sideicons", 11));
-            imageSideiconView11.setLayoutX(206);
-            imageSideiconView11.setLayoutY(2);
+            imageSideiconView11.setLayoutX(201);
+            imageSideiconView11.setLayoutY(0);
 
             ImageView imageSideiconView12 = new ImageView(assetLoader.getSpriteManager().getSprite("sideicons", 12));
-            imageSideiconView12.setLayoutX(230);
-            imageSideiconView12.setLayoutY(2);
+            imageSideiconView12.setLayoutX(229);
+            imageSideiconView12.setLayoutY(0);
             areaBackbase2.getChildren().addAll(backbase2ImageView, imageSideiconView7,
                     imageSideiconView8, imageSideiconView9, imageSideiconView10, imageSideiconView11,
                     imageSideiconView12);
 
             areaBackhmid1 = new Pane();
             areaBackhmid1.setPrefSize(269, 66);
-            areaBackhmid1.setLayoutX(520);
-            areaBackhmid1.setLayoutY(165);
+            areaBackhmid1.setLayoutX(516);
+            areaBackhmid1.setLayoutY(160);
             backhmid1ImageView = new ImageView(assetLoader.getSpriteManager().getSprite("backhmid1", 0));
             ImageView imageSideiconView0 = new ImageView(assetLoader.getSpriteManager().getSprite("sideicons", 0));
-            imageSideiconView0.setLayoutX(35);
-            imageSideiconView0.setLayoutY(34);
+            imageSideiconView0.setLayoutX(29);
+            imageSideiconView0.setLayoutY(13);
 
             ImageView imageSideiconView1 = new ImageView(assetLoader.getSpriteManager().getSprite("sideicons", 1));
-            imageSideiconView1.setLayoutX(59);
-            imageSideiconView1.setLayoutY(32);
+            imageSideiconView1.setLayoutX(53);
+            imageSideiconView1.setLayoutY(11);
 
             ImageView imageSideiconView2 = new ImageView(assetLoader.getSpriteManager().getSprite("sideicons", 2));
-            imageSideiconView2.setLayoutX(86);
-            imageSideiconView2.setLayoutY(32);
+            imageSideiconView2.setLayoutX(82);
+            imageSideiconView2.setLayoutY(11);
 
             ImageView imageSideiconView3 = new ImageView(assetLoader.getSpriteManager().getSprite("sideicons", 3));
-            imageSideiconView3.setLayoutX(121);
-            imageSideiconView3.setLayoutY(33);
+            imageSideiconView3.setLayoutX(115);
+            imageSideiconView3.setLayoutY(12);
 
             ImageView imageSideiconView4 = new ImageView(assetLoader.getSpriteManager().getSprite("sideicons", 4));
-            imageSideiconView4.setLayoutX(157);
-            imageSideiconView4.setLayoutY(34);
+            imageSideiconView4.setLayoutX(153);
+            imageSideiconView4.setLayoutY(13);
 
             ImageView imageSideiconView5 = new ImageView(assetLoader.getSpriteManager().getSprite("sideicons", 5));
-            imageSideiconView5.setLayoutX(185);
-            imageSideiconView5.setLayoutY(32);
+            imageSideiconView5.setLayoutX(180);
+            imageSideiconView5.setLayoutY(11);
 
             ImageView imageSideiconView6 = new ImageView(assetLoader.getSpriteManager().getSprite("sideicons", 6));
-            imageSideiconView6.setLayoutX(212);
-            imageSideiconView6.setLayoutY(34);
+            imageSideiconView6.setLayoutX(208);
+            imageSideiconView6.setLayoutY(13);
             areaBackhmid1.getChildren().addAll(backhmid1ImageView, imageSideiconView0,
                     imageSideiconView1, imageSideiconView2, imageSideiconView3, imageSideiconView4,
                     imageSideiconView5, imageSideiconView6);
 
             areaBackleft1 = new Pane();
             areaBackleft1.setLayoutX(0);
-            areaBackleft1.setLayoutY(11);
+            areaBackleft1.setLayoutY(4);
             backleft1ImageView = new ImageView(assetLoader.getSpriteManager().getSprite("backleft1", 0));
             areaBackleft1.getChildren().add(backleft1ImageView);
 
             areaBackleft2 = new Pane();
             areaBackleft2.setLayoutX(0);
-            areaBackleft2.setLayoutY(375);
+            areaBackleft2.setLayoutY(357);
             backleft2ImageView = new ImageView(assetLoader.getSpriteManager().getSprite("backleft2", 0));
             areaBackleft2.getChildren().add(backleft2ImageView);
 
             areaBackright1 = new Pane();
-            areaBackright1.setLayoutX(729);
-            areaBackright1.setLayoutY(5);
+            areaBackright1.setLayoutX(722);
+            areaBackright1.setLayoutY(4);
             backright1ImageView = new ImageView(assetLoader.getSpriteManager().getSprite("backright1", 0));
             areaBackright1.getChildren().add(backright1ImageView);
 
             areaBackright2 = new Pane();
-            areaBackright2.setLayoutX(752);
-            areaBackright2.setLayoutY(231);
+            areaBackright2.setLayoutX(743);
+            areaBackright2.setLayoutY(205);
             backright2ImageView = new ImageView(assetLoader.getSpriteManager().getSprite("backright2", 0));
             areaBackright2.getChildren().add(backright2ImageView);
 
@@ -2172,26 +2172,26 @@ public class LostCityInterfaceEditor extends Application {
             areaBacktop2.getChildren().add(backtop2ImageView);
 
             areaBackvmid1 = new Pane();
-            areaBackvmid1.setLayoutX(520);
-            areaBackvmid1.setLayoutY(11);
+            areaBackvmid1.setLayoutX(516);
+            areaBackvmid1.setLayoutY(4);
             backvmid1ImageView = new ImageView(assetLoader.getSpriteManager().getSprite("backvmid1", 0));
             areaBackvmid1.getChildren().add(backvmid1ImageView);
 
             areaBackvmid2 = new Pane();
-            areaBackvmid2.setLayoutX(520);
-            areaBackvmid2.setLayoutY(231);
+            areaBackvmid2.setLayoutX(516);
+            areaBackvmid2.setLayoutY(205);
             backvmid2ImageView = new ImageView(assetLoader.getSpriteManager().getSprite("backvmid2", 0));
             areaBackvmid2.getChildren().add(backvmid2ImageView);
 
             areaBackvmid3 = new Pane();
-            areaBackvmid3.setLayoutX(501);
-            areaBackvmid3.setLayoutY(375);
+            areaBackvmid3.setLayoutX(496);
+            areaBackvmid3.setLayoutY(357);
             backvmid3ImageView = new ImageView(assetLoader.getSpriteManager().getSprite("backvmid3", 0));
             areaBackvmid3.getChildren().add(backvmid3ImageView);
 
             areaBackhmid2 = new Pane();
             areaBackhmid2.setLayoutX(0);
-            areaBackhmid2.setLayoutY(345);
+            areaBackhmid2.setLayoutY(338);
             backhmid2ImageView = new ImageView(assetLoader.getSpriteManager().getSprite("backhmid2", 0));
             areaBackhmid2.getChildren().add(backhmid2ImageView);
 

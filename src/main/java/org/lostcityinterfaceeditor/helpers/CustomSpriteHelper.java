@@ -54,39 +54,45 @@ public class CustomSpriteHelper {
         int imageWidth = (int)image.getWidth();
         ArrayList<WritableImage> sprites = new ArrayList<>();
 
-        try (BufferedReader reader = new BufferedReader(new FileReader(imageDataFile))) {
-            String line;
-            int count = 0;
-            int blockWidth = 0;
-            int blockHeight = 0;
-            int rowCount = 1;
-            reader.mark(100);
-            String firstLine = reader.readLine();
-            String secondLine = reader.readLine();
-            if(secondLine != null) {
-                String[] dimensions = firstLine.split("x");
-                blockWidth = Integer.parseInt(dimensions[0]);
-                blockHeight = Integer.parseInt(dimensions[1]);
-                rowCount = imageWidth / blockWidth;
-            }
-            reader.reset();
-            while ((line = reader.readLine()) != null) {
-                String[] parts = line.split(",");
-                if (parts.length == 5) {
-                    int initialXOffset = Integer.parseInt(parts[0]);
-                    int initialYOffset = Integer.parseInt(parts[1]);
-                    int width = Integer.parseInt(parts[2]);
-                    int height = Integer.parseInt(parts[3]);
+        if (!imageDataFile.exists()) {
+            WritableImage spriteImage = extractSprite(image, 0, 0, imageWidth, (int) image.getHeight(), 0, 0);
+            sprites.add(spriteImage);
+        } else {
+            try (BufferedReader reader = new BufferedReader(new FileReader(imageDataFile))) {
+                String line;
+                int count = 0;
+                int blockWidth = 0;
+                int blockHeight = 0;
+                int rowCount = 1;
+                reader.mark(100);
+                String firstLine = reader.readLine();
+                String secondLine = reader.readLine();
+                if(secondLine != null) {
+                    String[] dimensions = firstLine.split("x");
+                    blockWidth = Integer.parseInt(dimensions[0]);
+                    blockHeight = Integer.parseInt(dimensions[1]);
+                    rowCount = imageWidth / blockWidth;
+                }
+                reader.reset();
+                while ((line = reader.readLine()) != null) {
+                    String[] parts = line.split(",");
+                    if (parts.length == 4) {
+                        int initialXOffset = Integer.parseInt(parts[0]);
+                        int initialYOffset = Integer.parseInt(parts[1]);
+                        int width = Integer.parseInt(parts[2]);
+                        int height = Integer.parseInt(parts[3]);
 
-                    int xOffset = initialXOffset + blockWidth * (count % rowCount);
-                    int yOffset = initialYOffset + blockHeight * (count / rowCount);
+                        int xOffset = initialXOffset + blockWidth * (count % rowCount);
+                        int yOffset = initialYOffset + blockHeight * (count / rowCount);
 
-                    WritableImage spriteImage = extractSprite(image, xOffset, yOffset, width, height, initialXOffset, initialYOffset);
-                    sprites.add(spriteImage);
-                    count++;
+                        WritableImage spriteImage = extractSprite(image, xOffset, yOffset, width, height, initialXOffset, initialYOffset);
+                        sprites.add(spriteImage);
+                        count++;
+                    }
                 }
             }
         }
+
         this.sprites = sprites;
     }
 

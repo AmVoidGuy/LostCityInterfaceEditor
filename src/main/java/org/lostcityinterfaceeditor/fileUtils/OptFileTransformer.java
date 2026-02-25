@@ -55,19 +55,14 @@ public class OptFileTransformer {
             String dataLine = reader.readLine();
             if (dataLine != null) {
                 String[] parts = dataLine.split(",");
-                if (parts.length == 5) {
+                if (parts.length == 4) {
                     try {
                         int cropX = Integer.parseInt(parts[0].trim());
                         int cropY = Integer.parseInt(parts[1].trim());
                         int width = Integer.parseInt(parts[2].trim());
                         int height = Integer.parseInt(parts[3].trim());
-                        String pixelOrderStr = parts[4].trim().toLowerCase();
 
                         int pixelOrder = 0;
-                        if (pixelOrderStr.equals("column")) {
-                            pixelOrder = 1;
-                        }
-
                         return new TextureOptions(cropX, cropY, width, height, pixelOrder);
                     } catch (NumberFormatException e) {
                         System.err.println("Error parsing data in file: " + filePath + " - Invalid number format.");
